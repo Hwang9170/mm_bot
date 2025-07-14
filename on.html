@@ -6,62 +6,63 @@
   <title>Market Making Bot Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Consolas','Monaco',monospace; background: #0a0a0a; color: #00ff00; overflow: hidden; }
-    .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 60px 1fr 1fr; height: 100vh; gap: 2px; background: #111; }
-    .header { grid-column: 1 / -1; background: linear-gradient(45deg,#1a1a1a,#2a2a2a); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
-    .header h1 { font-size: 24px; text-shadow: 0 0 10px #00ff00; }
-    .status { display: flex; gap: 20px; align-items: center; }
-    .status span { color: #00ff00; }
-    .status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; box-shadow: 0 0 10px #00ff00; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-    .panel { background: #1a1a1a; border: 1px solid #333; overflow: hidden; }
-    .panel-header { background: #2a2a2a; padding: 10px; border-bottom: 1px solid #333; font-size: 14px; font-weight: bold; color: #00ff00; }
-    .panel-content { padding: 10px; height: calc(100% - 45px); overflow-y: auto; }
-    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
-    .metric { background: #2a2a2a; padding: 10px; border-radius: 5px; border: 1px solid #333; }
-    .metric-title { font-size: 12px; }
-    .metric-value { font-size: 18px; font-weight: bold; color: #00ff00; margin-top: 5px; }
-    .metric-change { font-size: 10px; }
-    .positive { color: #00ff00; }
-    .negative { color: #ff0000; }
-    .orders-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .orders-table th, .orders-table td { padding: 5px; border-bottom: 1px solid #333; text-align: left; }
-    .orders-table th { background: #2a2a2a; color: #00ff00; }
-    .buy-order { color: #00ff00; }
-    .sell-order { color: #ff6666; }
-    .chart-container { height: 100%; background: #1a1a1a; }
-    .log-entry { margin: 2px 0; padding: 2px 5px; border-radius: 3px; animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-    .log-info { color: #00ff00; }
-    .log-warn { color: #ffff00; background: rgba(255,255,0,0.1); }
-    .log-error { color: #ff0000; background: rgba(255,0,0,0.1); }
-    .log-trade { color: #00ffff; background: rgba(0,255,255,0.1); }
-    .scrollbar::-webkit-scrollbar { width: 8px; }
-    .scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
-    .scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; color: #E0E0E0; overflow: hidden; }
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 60px 1fr 1fr; height: 100vh; gap: 4px; background: #111; }
+    .header { grid-column: 1 / -1; background: #141414; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
+    .header h1 { font-size: 24px; color: #FF9900; }
+    .status { display: flex; gap: 16px; align-items: center; font-size: 14px; }
+    .status span { color: #E0E0E0; }
+    .status-indicator { width: 10px; height: 10px; border-radius: 50%; background: #FF9900; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .panel { background: #1A1A1A; border: 1px solid #333; overflow: hidden; }
+    .panel-header { background: #262626; padding: 8px 12px; border-bottom: 1px solid #333; font-size: 13px; font-weight: bold; color: #FF9900; }
+    .panel-content { padding: 12px; height: calc(100% - 36px); overflow-y: auto; font-size: 13px; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .metric { background: #1E1E1E; padding: 12px; border-radius: 4px; }
+    .metric-title { font-size: 12px; color: #A0A0A0; }
+    .metric-value { font-size: 20px; font-weight: bold; color: #FFFFFF; margin-top: 4px; }
+    .metric-change { font-size: 11px; color: #FF9900; margin-top: 2px; }
+    .orders-table { width: 100%; border-collapse: collapse; }
+    .orders-table th, .orders-table td { padding: 6px; border-bottom: 1px solid #333; }
+    .orders-table th { background: #262626; color: #FF9900; font-size: 12px; }
+    .orders-table td { color: #E0E0E0; font-size: 12px; }
+    .buy-order { color: #00FF00; }
+    .sell-order { color: #FF3333; }
+    .chart-container { height: 100%; background: #141414; }
+    .log-entry { margin: 2px 0; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+    .log-info { color: #E0E0E0; }
+    .log-warn { color: #FFCC00; }
+    .log-error { color: #FF3333; }
+    .log-trade { color: #33CCFF; }
+    .scrollbar::-webkit-scrollbar { width: 6px; }
+    .scrollbar::-webkit-scrollbar-track { background: #1A1A1A; }
+    .scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     .scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+    #news-feed div { padding: 4px 0; border-bottom: 1px solid #333; color: #E0E0E0; }
+    #terminal div { font-size: 12px; color: #E0E0E0; }
   </style>
 </head>
 <body>
   <div class="dashboard">
     <div class="header">
+      <h1>MARKET MAKING</h1>
       <div class="status">
         <span>Status: <span id="bot-status">ACTIVE</span></span>
         <div class="status-indicator" id="status-light"></div>
         <span>Uptime: <span id="uptime">00:00:00</span></span>
-        <span>PnL: <span id="pnl" class="positive">+0.00</span></span>
+        <span>PnL: <span id="pnl">+0.00</span></span>
       </div>
     </div>
 
     <!-- Metrics -->
     <div class="panel">
-      <div class="panel-header">📊 Real-Time Metrics</div>
+      <div class="panel-header">REAL-TIME METRICS</div>
       <div class="panel-content">
         <div class="metrics">
           <div class="metric">
             <div class="metric-title">Total Volume</div>
             <div class="metric-value" id="total-volume">$0</div>
-            <div class="metric-change positive">+0.0%</div>
+            <div class="metric-change" id="vol-change">+0.0%</div>
           </div>
           <div class="metric">
             <div class="metric-title">Active Orders</div>
@@ -71,12 +72,12 @@
           <div class="metric">
             <div class="metric-title">Spread</div>
             <div class="metric-value" id="spread">0.000%</div>
-            <div class="metric-change positive">Optimized</div>
+            <div class="metric-change">Optimized</div>
           </div>
           <div class="metric">
             <div class="metric-title">Win Rate</div>
             <div class="metric-value" id="win-rate">0.0%</div>
-            <div class="metric-change positive">+0.0%</div>
+            <div class="metric-change">+0.0%</div>
           </div>
         </div>
       </div>
@@ -84,7 +85,7 @@
 
     <!-- Chart -->
     <div class="panel">
-      <div class="panel-header">📈 Price Chart</div>
+      <div class="panel-header">PRICE CHART</div>
       <div class="panel-content">
         <div class="chart-container">
           <!-- TradingView Widget -->
@@ -95,11 +96,11 @@
 
     <!-- Orders -->
     <div class="panel">
-      <div class="panel-header">📋 Order Status</div>
+      <div class="panel-header">ORDER STATUS</div>
       <div class="panel-content scrollbar">
         <table class="orders-table">
           <thead>
-            <tr><th>Time</th><th>Type</th><th>Price</th><th>Quantity</th><th>Status</th></tr>
+            <tr><th>Time</th><th>Type</th><th>Price</th><th>Qty</th><th>Status</th></tr>
           </thead>
           <tbody id="orders-tbody"></tbody>
         </table>
@@ -108,7 +109,7 @@
 
     <!-- Logs -->
     <div class="panel">
-      <div class="panel-header">🔥 Real-Time Logs</div>
+      <div class="panel-header">REAL-TIME LOGS</div>
       <div class="panel-content scrollbar">
         <div id="log-container"></div>
       </div>
@@ -116,7 +117,7 @@
 
     <!-- News -->
     <div class="panel">
-      <div class="panel-header">📰 News & Events</div>
+      <div class="panel-header">NEWS & EVENTS</div>
       <div class="panel-content scrollbar">
         <div id="news-feed"></div>
       </div>
@@ -124,7 +125,7 @@
 
     <!-- Terminal -->
     <div class="panel">
-      <div class="panel-header">💻 System Terminal</div>
+      <div class="panel-header">SYSTEM TERMINAL</div>
       <div class="panel-content scrollbar">
         <div id="terminal"></div>
       </div>
@@ -134,118 +135,61 @@
   <!-- Scripts -->
   <script src="https://s3.tradingview.com/tv.js"></script>
   <script>
-    // Initialize TradingView (Ethereum chart)
+    // Initialize TradingView (Bloomberg-like style using orange highlights)
     new TradingView.widget({
-      container_id: 'tv_chart',
-      autosize: true,
-      symbol: 'ETHUSD',
-      interval: '1',
-      timezone: 'Etc/UTC',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      toolbar_bg: '#1a1a1a',
-      enable_publishing: false,
-      allow_symbol_change: true,
-      details: true,
-      studies: ['MACD@tv-basicstudies']
+      container_id: 'tv_chart', autosize: true, symbol: 'BTCUSD', interval: '1', timezone: 'Etc/UTC',
+      theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#141414',
+      overrides: {
+        'mainSeriesProperties.candleStyle.upColor': '#FF9900',
+        'mainSeriesProperties.candleStyle.downColor': '#555555',
+        'mainSeriesProperties.candleStyle.borderUpColor': '#FF9900',
+        'mainSeriesProperties.candleStyle.borderDownColor': '#555555'
+      }, enable_publishing: false, allow_symbol_change: false, details: false
     });
 
-    // Load persisted metrics from localStorage
-    let totalVolume = parseInt(localStorage.getItem('totalVolume') || '0', 10);
-    let activeOrders = parseInt(localStorage.getItem('activeOrders') || '0', 10);
-    let pnl = parseFloat(localStorage.getItem('pnl') || '0');
+    // Load persisted metrics & histories
+    let totalVolume = parseInt(localStorage.getItem('totalVolume')||'0',10);
+    let activeOrders = parseInt(localStorage.getItem('activeOrders')||'0',10);
+    let pnl = parseFloat(localStorage.getItem('pnl')||'0');
+    let logHistory = JSON.parse(localStorage.getItem('logHistory')||'[]');
+    let ordersHistory = JSON.parse(localStorage.getItem('ordersHistory')||'[]');
+    let newsHistory = JSON.parse(localStorage.getItem('newsHistory')||'[]');
+    let termHistory = JSON.parse(localStorage.getItem('termHistory')||'[]');
     const startTime = Date.now();
 
-    // Display initial persisted values
+    // Render persisted data
     document.getElementById('total-volume').textContent = `$${totalVolume}`;
     document.getElementById('active-orders').textContent = activeOrders;
     document.getElementById('pnl').textContent = `${pnl>=0?'+':''}${pnl.toFixed(2)}`;
+    const renderLog = (t,x,ts) => { const c=document.getElementById('log-container'); const e=document.createElement('div'); e.className=`log-entry log-${t}`; e.textContent=`[${ts}] ${x}`; c.appendChild(e); };
+    const renderOrder = (t,p,q,ts,s) => { const b=document.getElementById('orders-tbody'); const r=document.createElement('tr'); r.innerHTML=`<td>${ts}</td><td class='${t.toLowerCase()}-order'>${t}</td><td>$${p}</td><td>${q}</td><td>${s}</td>`; b.appendChild(r); };
+    const renderNews = (x,ts) => { const f=document.getElementById('news-feed'); const i=document.createElement('div'); i.textContent=`[${ts}] ${x}`; f.appendChild(i); };
+    const renderTerm = l => { const t=document.getElementById('terminal'); const d=document.createElement('div'); d.textContent=l; t.appendChild(d); };
+    logHistory.forEach(({type,msg,time})=>renderLog(type,msg,time));
+    ordersHistory.forEach(({type,price,qty,time,status})=>renderOrder(type,price,qty,time,status));
+    newsHistory.forEach(({msg,time})=>renderNews(msg,time));
+    termHistory.forEach(l=>renderTerm(l));
+    // Trim DOM
+    if(document.getElementById('orders-tbody').children.length>20) [...document.getElementById('orders-tbody').children].slice(0,-20).forEach(n=>n.remove());
+    if(document.getElementById('news-feed').children.length>10) [...document.getElementById('news-feed').children].slice(0,-10).forEach(n=>n.remove());
+    if(document.getElementById('terminal').children.length>50) [...document.getElementById('terminal').children].slice(0,-50).forEach(n=>n.remove());
 
-    // Data pools
-    const logMessages = [
-      {type:'info',msg:'Order book updated'},
-      {type:'trade',msg:'Trade executed'},
-      {type:'warn',msg:'High volatility detected'},
-      {type:'error',msg:'Order rejected'}
-    ];
-    const newsMessages = [
-      'Fed rate decision announced',
-      'Crypto exchange volume record',
-      'ETF approval rumors'
-    ];
-    const terminalCommands = [
-      'Initializing strategies',
-      'Connecting to APIs',
-      'Monitor running'
-    ];
+    // Pools
+    const logMsgs=[{type:'info',msg:'Order book updated'},{type:'trade',msg:'Trade executed'},{type:'warn',msg:'High volatility'},{type:'error',msg:'Order rejected'}];
+    const newsMsgs=['Fed day','Exchange up','ETF buzz'];
+    const termCmds=['Init strat','API connect','Monitoring'];
 
-    function addLog(type, text) {
-      const container = document.getElementById('log-container');
-      const entry = document.createElement('div');
-      entry.className = `log-entry log-${type}`;
-      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-      container.appendChild(entry);
-      if(container.children.length>100) container.removeChild(container.firstChild);
-      container.scrollTop = container.scrollHeight;
-    }
+    function addLog(t,x){const ts=new Date().toLocaleTimeString(); renderLog(t,x,ts); logHistory.push({type:t,msg:x,time:ts}); if(logHistory.length>100) logHistory.shift(); localStorage.setItem('logHistory',JSON.stringify(logHistory)); const c=document.getElementById('log-container'); if(c.children.length>100) c.removeChild(c.firstChild); c.scrollTop=c.scrollHeight;}
+    function addOrder(){const ts=new Date().toLocaleTimeString(); const t=Math.random()>0.5?'BUY':'SELL'; const p=(Math.random()*50000+1000).toFixed(2); const q=(Math.random()).toFixed(4); const s='PENDING'; renderOrder(t,p,q,ts,s); ordersHistory.push({type:t,price:p,qty:q,time:ts,status:s}); if(ordersHistory.length>20) ordersHistory.shift(); localStorage.setItem('ordersHistory',JSON.stringify(ordersHistory)); const b=document.getElementById('orders-tbody'); if(b.children.length>20) b.removeChild(b.lastChild);}    
+    function addNews(){const ts=new Date().toLocaleTimeString(); const x=newsMsgs[Math.floor(Math.random()*newsMsgs.length)]; renderNews(x,ts); newsHistory.push({msg:x,time:ts}); if(newsHistory.length>10) newsHistory.shift(); localStorage.setItem('newsHistory',JSON.stringify(newsHistory)); const f=document.getElementById('news-feed'); if(f.children.length>10) f.removeChild(f.lastChild);}    
+    function addTerm(){const l=termCmds[Math.floor(Math.random()*termCmds.length)]; renderTerm(l); termHistory.push(l); if(termHistory.length>50) termHistory.shift(); localStorage.setItem('termHistory',JSON.stringify(termHistory)); const t=document.getElementById('terminal'); if(t.children.length>50) t.removeChild(t.firstChild); t.scrollTop=t.scrollHeight;}    
+    function update(){const now=Date.now(); document.getElementById('uptime').textContent=new Date(now-startTime).toISOString().substr(11,8); totalVolume+=Math.floor(Math.random()*200); activeOrders=Math.floor(Math.random()*100); pnl+=Math.random()*20-10; document.getElementById('total-volume').textContent=`$${totalVolume}`; document.getElementById('active-orders').textContent=activeOrders; document.getElementById('pnl').textContent=`${pnl>=0?'+':''}${pnl.toFixed(2)}`; localStorage.setItem('totalVolume',totalVolume); localStorage.setItem('activeOrders',activeOrders); localStorage.setItem('pnl',pnl.toFixed(2));}
 
-    function addOrder() {
-      const tbody = document.getElementById('orders-tbody');
-      const row = document.createElement('tr');
-      const now = new Date().toLocaleTimeString();
-      const type = Math.random()>0.5?'BUY':'SELL';
-      const price = (Math.random()*2000+1000).toFixed(2); // random price between 1000-3000
-      const qty = (Math.random()*1).toFixed(4);
-      row.innerHTML = `<td>${now}</td><td class="${type.toLowerCase()}-order">${type}</td><td>$${price}</td><td>${qty}</td><td>PENDING</td>`;
-      tbody.insertBefore(row, tbody.firstChild);
-      if(tbody.children.length>20) tbody.removeChild(tbody.lastChild);
-    }
-
-    function addNews() {
-      const feed = document.getElementById('news-feed');
-      const item = document.createElement('div');
-      item.textContent = newsMessages[Math.floor(Math.random()*newsMessages.length)];
-      feed.insertBefore(item, feed.firstChild);
-      if(feed.children.length>10) feed.removeChild(feed.lastChild);
-    }
-
-    function addTerminal() {
-      const term = document.getElementById('terminal');
-      const line = document.createElement('div');
-      line.textContent = terminalCommands[Math.floor(Math.random()*terminalCommands.length)];
-      term.appendChild(line);
-      if(term.children.length>50) term.removeChild(term.firstChild);
-      term.scrollTop = term.scrollHeight;
-    }
-
-    function updateMetrics() {
-      // Uptime
-      const now = Date.now();
-      document.getElementById('uptime').textContent = new Date(now - startTime).toISOString().substr(11, 8);
-      // Simulate
-      totalVolume += Math.floor(Math.random()*100);
-      activeOrders = Math.floor(Math.random()*50);
-      pnl += (Math.random()-0.5)*20;
-      // Update display
-      document.getElementById('total-volume').textContent = `$${totalVolume}`;
-      document.getElementById('active-orders').textContent = activeOrders;
-      document.getElementById('pnl').textContent = `${pnl>=0?'+':''}${pnl.toFixed(2)}`;
-      // Persist
-      localStorage.setItem('totalVolume', totalVolume);
-      localStorage.setItem('activeOrders', activeOrders);
-      localStorage.setItem('pnl', pnl.toFixed(2));
-    }
-
-    // Init loops
-    setInterval(() => {
-      const msg = logMessages[Math.floor(Math.random()*logMessages.length)];
-      addLog(msg.type, msg.msg);
-    }, 1000);
-    setInterval(addOrder, 2000);
-    setInterval(addNews, 5000);
-    setInterval(addTerminal, 3000);
-    setInterval(updateMetrics, 1000);
+    setInterval(()=>{const m=logMsgs[Math.floor(Math.random()*logMsgs.length)]; addLog(m.type,m.msg); },1000);
+    setInterval(addOrder,2000);
+    setInterval(addNews,5000);
+    setInterval(addTerm,3000);
+    setInterval(update,1000);
   </script>
 </body>
 </html>
