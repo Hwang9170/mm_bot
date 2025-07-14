@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market Making Bot Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Consolas','Monaco',monospace; background: #0a0a0a; color: #00ff00; overflow: hidden; }
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 60px 1fr 1fr; height: 100vh; gap: 2px; background: #111; }
+    .header { grid-column: 1 / -1; background: linear-gradient(45deg,#1a1a1a,#2a2a2a); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
+    .header h1 { font-size: 24px; text-shadow: 0 0 10px #00ff00; }
+    .status { display: flex; gap: 20px; align-items: center; }
+    .status span { color: #00ff00; }
+    .status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; box-shadow: 0 0 10px #00ff00; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .panel { background: #1a1a1a; border: 1px solid #333; overflow: hidden; }
+    .panel-header { background: #2a2a2a; padding: 10px; border-bottom: 1px solid #333; font-size: 14px; font-weight: bold; color: #00ff00; }
+    .panel-content { padding: 10px; height: calc(100% - 45px); overflow-y: auto; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
+    .metric { background: #2a2a2a; padding: 10px; border-radius: 5px; border: 1px solid #333; }
+    .metric-title { font-size: 12px; }
+    .metric-value { font-size: 18px; font-weight: bold; color: #00ff00; margin-top: 5px; }
+    .metric-change { font-size: 10px; }
+    .positive { color: #00ff00; }
+    .negative { color: #ff0000; }
+    .orders-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .orders-table th, .orders-table td { padding: 5px; border-bottom: 1px solid #333; text-align: left; }
+    .orders-table th { background: #2a2a2a; color: #00ff00; }
+    .buy-order { color: #00ff00; }
+    .sell-order { color: #ff6666; }
+    .chart-container { height: 100%; background: #1a1a1a; }
+    .log-entry { margin: 2px 0; padding: 2px 5px; border-radius: 3px; animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    .log-info { color: #00ff00; }
+    .log-warn { color: #ffff00; background: rgba(255,255,0,0.1); }
+    .log-error { color: #ff0000; background: rgba(255,0,0,0.1); }
+    .log-trade { color: #00ffff; background: rgba(0,255,255,0.1); }
+    .scrollbar::-webkit-scrollbar { width: 8px; }
+    .scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+    .scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    .scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <div class="status">
+        <span>Status: <span id="bot-status">ACTIVE</span></span>
+        <div class="status-indicator" id="status-light"></div>
+        <span>Uptime: <span id="uptime">00:00:00</span></span>
+        <span>PnL: <span id="pnl" class="positive">+0.00</span></span>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="panel">
+      <div class="panel-header">📊 Real-Time Metrics</div>
+      <div class="panel-content">
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-title">Total Volume</div>
+            <div class="metric-value" id="total-volume">$0</div>
+            <div class="metric-change positive">+0.0%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-title">Active Orders</div>
+            <div class="metric-value" id="active-orders">0</div>
+            <div class="metric-change">Buy: 0 / Sell: 0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-title">Spread</div>
+            <div class="metric-value" id="spread">0.000%</div>
+            <div class="metric-change positive">Optimized</div>
+          </div>
+          <div class="metric">
+            <div class="metric-title">Win Rate</div>
+            <div class="metric-value" id="win-rate">0.0%</div>
+            <div class="metric-change positive">+0.0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="panel">
+      <div class="panel-header">📈 Price Chart</div>
+      <div class="panel-content">
+        <div class="chart-container">
+          <!-- TradingView Widget -->
+          <div id="tv_chart" style="width: 100%; height: 100%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="panel">
+      <div class="panel-header">📋 Order Status</div>
+      <div class="panel-content scrollbar">
+        <table class="orders-table">
+          <thead>
+            <tr><th>Time</th><th>Type</th><th>Price</th><th>Quantity</th><th>Status</th></tr>
+          </thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="panel">
+      <div class="panel-header">🔥 Real-Time Logs</div>
+      <div class="panel-content scrollbar">
+        <div id="log-container"></div>
+      </div>
+    </div>
+
+    <!-- News -->
+    <div class="panel">
+      <div class="panel-header">📰 News & Events</div>
+      <div class="panel-content scrollbar">
+        <div id="news-feed"></div>
+      </div>
+    </div>
+
+    <!-- Terminal -->
+    <div class="panel">
+      <div class="panel-header">💻 System Terminal</div>
+      <div class="panel-content scrollbar">
+        <div id="terminal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    // Initialize TradingView (Ethereum chart)
+    new TradingView.widget({
+      container_id: 'tv_chart',
+      autosize: true,
+      symbol: 'ETHUSD',
+      interval: '1',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      toolbar_bg: '#1a1a1a',
+      enable_publishing: false,
+      allow_symbol_change: true,
+      details: true,
+      studies: ['MACD@tv-basicstudies']
+    });
+
+    // Load persisted metrics from localStorage
+    let totalVolume = parseInt(localStorage.getItem('totalVolume') || '0', 10);
+    let activeOrders = parseInt(localStorage.getItem('activeOrders') || '0', 10);
+    let pnl = parseFloat(localStorage.getItem('pnl') || '0');
+    const startTime = Date.now();
+
+    // Display initial persisted values
+    document.getElementById('total-volume').textContent = `$${totalVolume}`;
+    document.getElementById('active-orders').textContent = activeOrders;
+    document.getElementById('pnl').textContent = `${pnl>=0?'+':''}${pnl.toFixed(2)}`;
+
+    // Data pools
+    const logMessages = [
+      {type:'info',msg:'Order book updated'},
+      {type:'trade',msg:'Trade executed'},
+      {type:'warn',msg:'High volatility detected'},
+      {type:'error',msg:'Order rejected'}
+    ];
+    const newsMessages = [
+      'Fed rate decision announced',
+      'Crypto exchange volume record',
+      'ETF approval rumors'
+    ];
+    const terminalCommands = [
+      'Initializing strategies',
+      'Connecting to APIs',
+      'Monitor running'
+    ];
+
+    function addLog(type, text) {
+      const container = document.getElementById('log-container');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      container.appendChild(entry);
+      if(container.children.length>100) container.removeChild(container.firstChild);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function addOrder() {
+      const tbody = document.getElementById('orders-tbody');
+      const row = document.createElement('tr');
+      const now = new Date().toLocaleTimeString();
+      const type = Math.random()>0.5?'BUY':'SELL';
+      const price = (Math.random()*2000+1000).toFixed(2); // random price between 1000-3000
+      const qty = (Math.random()*1).toFixed(4);
+      row.innerHTML = `<td>${now}</td><td class="${type.toLowerCase()}-order">${type}</td><td>$${price}</td><td>${qty}</td><td>PENDING</td>`;
+      tbody.insertBefore(row, tbody.firstChild);
+      if(tbody.children.length>20) tbody.removeChild(tbody.lastChild);
+    }
+
+    function addNews() {
+      const feed = document.getElementById('news-feed');
+      const item = document.createElement('div');
+      item.textContent = newsMessages[Math.floor(Math.random()*newsMessages.length)];
+      feed.insertBefore(item, feed.firstChild);
+      if(feed.children.length>10) feed.removeChild(feed.lastChild);
+    }
+
+    function addTerminal() {
+      const term = document.getElementById('terminal');
+      const line = document.createElement('div');
+      line.textContent = terminalCommands[Math.floor(Math.random()*terminalCommands.length)];
+      term.appendChild(line);
+      if(term.children.length>50) term.removeChild(term.firstChild);
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function updateMetrics() {
+      // Uptime
+      const now = Date.now();
+      document.getElementById('uptime').textContent = new Date(now - startTime).toISOString().substr(11, 8);
+      // Simulate
+      totalVolume += Math.floor(Math.random()*100);
+      activeOrders = Math.floor(Math.random()*50);
+      pnl += (Math.random()-0.5)*20;
+      // Update display
+      document.getElementById('total-volume').textContent = `$${totalVolume}`;
+      document.getElementById('active-orders').textContent = activeOrders;
+      document.getElementById('pnl').textContent = `${pnl>=0?'+':''}${pnl.toFixed(2)}`;
+      // Persist
+      localStorage.setItem('totalVolume', totalVolume);
+      localStorage.setItem('activeOrders', activeOrders);
+      localStorage.setItem('pnl', pnl.toFixed(2));
+    }
+
+    // Init loops
+    setInterval(() => {
+      const msg = logMessages[Math.floor(Math.random()*logMessages.length)];
+      addLog(msg.type, msg.msg);
+    }, 1000);
+    setInterval(addOrder, 2000);
+    setInterval(addNews, 5000);
+    setInterval(addTerminal, 3000);
+    setInterval(updateMetrics, 1000);
+  </script>
+</body>
+</html>

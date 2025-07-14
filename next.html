@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi-Bot Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0a; --panel-bg: #1a1a1a; --panel-header: #2a2a2a; --border: #333;
+      --font: 'Share Tech Mono', monospace;
+      /* 기본은 Alpha */
+      --neon: #00ff00; --neon-shadow: rgba(0,255,0,0.6); --trade: #00ffff;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:var(--font);background:var(--bg);color:var(--neon);overflow:hidden;}
+    .sidebar{position:fixed;top:0;left:0;width:200px;height:100vh;
+      background:#111;border-right:1px solid var(--border);display:flex;flex-direction:column;}
+    .sidebar-header{padding:20px;font-size:18px;text-align:center;border-bottom:1px solid var(--border);}
+    .bot-list{list-style:none;overflow-y:auto;flex:1;}
+    .bot-item{padding:12px 20px;cursor:pointer;border-left:3px solid transparent;
+      transition:background .2s;}
+    .bot-item.active, .bot-item:hover{
+      background:rgba(255,255,255,0.05);
+      border-left-color:var(--neon);
+    }
+    .dashboard{margin-left:200px;display:grid;
+      grid-template-columns:repeat(3,1fr);grid-template-rows:60px 1fr 1fr;
+      height:100vh;gap:2px;background:#111;}
+    .header{grid-column:1/-1;background:linear-gradient(45deg,#1a1a1a,#2a2a2a);
+      display:flex;justify-content:space-between;align-items:center;
+      padding:0 20px;border-bottom:1px solid var(--border);}
+    .header h1{font-size:22px;text-shadow:0 0 8px var(--neon);}
+    .status{display:flex;gap:16px;align-items:center;font-size:14px;}
+    .status-indicator{width:12px;height:12px;border-radius:50%;
+      background:var(--neon);box-shadow:0 0 6px var(--neon-shadow);
+      animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .panel{background:var(--panel-bg);border:1px solid var(--border);overflow:hidden;}
+    .panel-header{background:var(--panel-header);padding:8px 12px;font-size:14px;
+      border-bottom:1px solid var(--border);}
+    .panel-content{padding:10px;height:calc(100% - 34px);overflow-y:auto;}
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;}
+    .metric{background:var(--panel-header);padding:10px;border-radius:4px;}
+    .metric-value{font-size:18px;font-weight:bold;margin-top:4px;}
+    .metric-change{font-size:10px;margin-top:2px;}
+    .orders-table{width:100%;border-collapse:collapse;font-size:11px;}
+    .orders-table th,.orders-table td{text-align:left;padding:4px;
+      border-bottom:1px solid var(--border);}
+    .orders-table th{background:var(--panel-header);}
+    .log-entry{margin:2px 0;font-size:12px;}
+    .log-info{color:var(--neon);}
+    .log-warn{color:#ffff00;}
+    .log-error{color:#ff0000;}
+    .log-trade{color:var(--trade);}
+    .news-item{padding:6px;margin:4px 0;background:var(--panel-header);
+      border-left:3px solid var(--neon);font-size:11px;}
+    .news-time{font-size:10px;color:#666;}
+    .terminal{font-size:11px;}
+    .terminal-line{margin:1px 0;}
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">Bots</div>
+    <ul class="bot-list" id="bot-list">
+      <li class="bot-item active" data-name="Alpha">Bot Alpha</li>
+      <li class="bot-item" data-name="Beta">Bot Beta</li>
+      <li class="bot-item" data-name="Gamma">Bot Gamma</li>
+    </ul>
+  </div>
+
+  <div class="dashboard">
+    <div class="header">
+      <h1>MM Bot Dashboard — <span id="bot-name">Alpha</span></h1>
+      <div class="status">
+        <span>Status: <strong>ACTIVE</strong></span>
+        <div class="status-indicator"></div>
+        <span>Uptime: <strong id="uptime">00:00:00</strong></span>
+        <span>PnL: <strong id="pnl">+0.00</strong></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📊 Metrics</div>
+      <div class="panel-content">
+        <div class="metrics">
+          <div class="metric">
+            총 거래량
+            <div class="metric-value" id="total-volume">0</div>
+            <div class="metric-change" id="change-volume">+0%</div>
+          </div>
+          <div class="metric">
+            활성 주문
+            <div class="metric-value" id="active-orders">0</div>
+            <div class="metric-change" id="change-orders">Buy:0 / Sell:0</div>
+          </div>
+          <div class="metric">
+            스프레드
+            <div class="metric-value" id="spread">0.000%</div>
+            <div class="metric-change" id="change-spread">-</div>
+          </div>
+          <div class="metric">
+            승률
+            <div class="metric-value" id="win-rate">0%</div>
+            <div class="metric-change" id="change-win">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📈 Chart</div>
+      <div class="panel-content">
+        <canvas id="botChart" style="width:100%;height:100%;"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📋 Orders</div>
+      <div class="panel-content">
+        <table class="orders-table">
+          <thead>
+            <tr><th>시간</th><th>타입</th><th>가격</th><th>수량</th><th>상태</th></tr>
+          </thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">🔥 Logs</div>
+      <div class="panel-content" id="log-container"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📰 News</div>
+      <div class="panel-content" id="news-feed"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">💻 Terminal</div>
+      <div class="panel-content" id="terminal"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const themes = {
+      Alpha: { neon:'#00ff00', shadow:'rgba(0,255,0,0.6)', trade:'#00ffff' },
+      Beta:  { neon:'#ff00ff', shadow:'rgba(255,0,255,0.6)', trade:'#ffff00' },
+      Gamma: { neon:'#00ffff', shadow:'rgba(0,255,255,0.6)', trade:'#ff00ff' },
+    };
+
+    const chartConfigs = {
+      Alpha: { type: 'line', options: { 
+                animation:false,
+                scales:{ x:{display:false}, y:{ticks:{color:'var(--neon)'}}},
+                plugins:{ legend:{display:false}}
+              }},
+      Beta:  { type: 'bar',  options: {
+                animation:false,
+                scales:{ x:{display:false}, y:{ticks:{color:'var(--neon)'}}},
+                plugins:{ legend:{display:false}}
+              }},
+      Gamma: { type: 'line', options: {
+                animation:false,
+                elements:{ line:{fill:true,backgroundColor:'rgba(0,255,255,0.2)'}},
+                scales:{ x:{display:false}, y:{ticks:{color:'var(--neon)'}}},
+                plugins:{ legend:{display:false}}
+              }},
+    };
+
+    const STORAGE_KEY = 'multiBotState';
+    let state = { current:'Alpha', bots:{} }, chart;
+
+    function initState() {
+      ['Alpha','Beta','Gamma'].forEach(name=>{
+        if (!state.bots[name]) {
+          state.bots[name] = {
+            chart:{ labels: [], data: [] },
+            metrics:{ totalVolume:0, activeOrders:0, spread:'0.000%', winRate:'0%' },
+            logs: [], news: [], orders: []
+          };
+        }
+      });
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved) state = saved;
+      } catch{}
+      initState();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function applyTheme(name) {
+      const t = themes[name];
+      document.documentElement.style.setProperty('--neon', t.neon);
+      document.documentElement.style.setProperty('--neon-shadow', t.shadow);
+      document.documentElement.style.setProperty('--trade', t.trade);
+    }
+
+    function renderBot(name) {
+      // 헤더
+      document.getElementById('bot-name').textContent = name;
+      applyTheme(name);
+      // 메트릭
+      const m = state.bots[name].metrics;
+      document.getElementById('total-volume').textContent = m.totalVolume.toLocaleString();
+      document.getElementById('active-orders').textContent = m.activeOrders;
+      document.getElementById('spread').textContent = m.spread;
+      document.getElementById('win-rate').textContent = m.winRate;
+      // 로그
+      const lc = document.getElementById('log-container');
+      lc.innerHTML = '';
+      state.bots[name].logs.forEach(e=>{
+        const d = document.createElement('div');
+        d.className = `log-entry log-${e.type}`;
+        d.textContent = e.text;
+        lc.append(d);
+      });
+      // 뉴스
+      const nf = document.getElementById('news-feed');
+      nf.innerHTML = '';
+      state.bots[name].news.forEach(n=>{
+        const ni = document.createElement('div');
+        ni.className='news-item';
+        ni.innerHTML=`<div>${n.text}</div><div class="news-time">${n.time}</div>`;
+        nf.append(ni);
+      });
+      // 주문 (더미)
+      const ot = document.getElementById('orders-tbody');
+      ot.innerHTML = '';
+      state.bots[name].orders.forEach(o=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML=`<td>${o.time}</td><td class="${o.type.toLowerCase()}-order">${o.type}</td>
+                      <td>${o.price}</td><td>${o.qty}</td><td>${o.status}</td>`;
+        ot.append(tr);
+      });
+      // 차트
+      if (chart) chart.destroy();
+      const cfg = chartConfigs[name];
+      chart = new Chart(document.getElementById('botChart').getContext('2d'), {
+        type: cfg.type,
+        data: { labels: state.bots[name].chart.labels, datasets:[{ data: state.bots[name].chart.data, borderWidth:1, backgroundColor: cfg.type==='bar'?'rgba(255,0,255,0.2)':undefined }]},
+        options: cfg.options
+      });
+    }
+
+    // Bot 전환
+    document.querySelectorAll('.bot-item').forEach(li=>{
+      li.addEventListener('click',()=>{
+        document.querySelector('.bot-item.active').classList.remove('active');
+        li.classList.add('active');
+        state.current = li.dataset.name;
+        saveState();
+        renderBot(state.current);
+      });
+    });
+
+    // Tick
+    let startTimes = {Alpha:Date.now(), Beta:Date.now(), Gamma:Date.now()};
+    function tick(){
+      const name = state.current;
+      const bot = state.bots[name];
+      // uptime
+      let elapsed = Math.floor((Date.now()-startTimes[name])/1000),
+          h=String(Math.floor(elapsed/3600)).padStart(2,'0'),
+          m=String(Math.floor(elapsed%3600/60)).padStart(2,'0'),
+          s=String(elapsed%60).padStart(2,'0');
+      document.getElementById('uptime').textContent=`${h}:${m}:${s}`;
+      // price & PnL
+      let last = bot.chart.data.slice(-1)[0]||50000;
+      let price = last + (Math.random()-0.5)*50;
+      document.getElementById('pnl').textContent=(price-50000).toFixed(2).padStart(7,'+');
+      // chart state
+      const now = new Date().toLocaleTimeString();
+      bot.chart.labels.push(now);
+      bot.chart.data.push(price);
+      if (bot.chart.labels.length>30){
+        bot.chart.labels.shift();
+        bot.chart.data.shift();
+      }
+      chart.update();
+      // metrics
+      bot.metrics.totalVolume = Math.floor(Math.random()*1e5);
+      bot.metrics.activeOrders = Math.floor(Math.random()*50);
+      bot.metrics.spread = (Math.random()*0.05).toFixed(3)+'%';
+      bot.metrics.winRate = (50+Math.random()*50).toFixed(1)+'%';
+      document.getElementById('total-volume').textContent = bot.metrics.totalVolume.toLocaleString();
+      document.getElementById('active-orders').textContent = bot.metrics.activeOrders;
+      document.getElementById('spread').textContent = bot.metrics.spread;
+      document.getElementById('win-rate').textContent = bot.metrics.winRate;
+      // logs
+      if (bot.logs.length>50) bot.logs.shift();
+      const types=['info','warn','error','trade'];
+      const t = types[Math.floor(Math.random()*4)];
+      const txt = `[${now}] ${t} log`;
+      bot.logs.push({type:t,text:txt});
+      const d = document.createElement('div');
+      d.className=`log-entry log-${t}`; d.textContent=txt;
+      const lc = document.getElementById('log-container');
+      lc.append(d); if(lc.children.length>50) lc.removeChild(lc.firstChild);
+      // news
+      if (Math.random()<0.1){
+        if (bot.news.length>5) bot.news.shift();
+        const newsTxt = `News ${Math.floor(Math.random()*100)}`;
+        const ni = {text:newsTxt,time:now};
+        bot.news.push(ni);
+        const el = document.createElement('div');
+        el.className='news-item';
+        el.innerHTML=`<div>${newsTxt}</div><div class="news-time">${now}</div>`;
+        const nf = document.getElementById('news-feed');
+        nf.prepend(el); if(nf.children.length>5) nf.removeChild(nf.lastChild);
+      }
+      // orders (더미)
+      if (Math.random()<0.2){
+        if (bot.orders.length>20) bot.orders.shift();
+        const ot = { time:now, type:Math.random()>0.5?'BUY':'SELL',
+                     price:`$${price.toFixed(2)}`, qty:(Math.random()*0.1).toFixed(4),
+                     status:['PENDING','FILLED','PARTIAL'][Math.floor(Math.random()*3)] };
+        bot.orders.push(ot);
+        const tr = document.createElement('tr');
+        tr.innerHTML=`<td>${ot.time}</td>
+                      <td class="${ot.type.toLowerCase()}-order">${ot.type}</td>
+                      <td>${ot.price}</td><td>${ot.qty}</td><td>${ot.status}</td>`;
+        const otb = document.getElementById('orders-tbody');
+        otb.prepend(tr);
+        if (otb.children.length>20) otb.removeChild(otb.lastChild);
+      }
+      saveState();
+    }
+
+    // 초기
+    loadState();
+    initState();
+    renderBot(state.current);
+    setInterval(tick,1000);
+  </script>
+</body>
+</html>
